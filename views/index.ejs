@@ -1,0 +1,14 @@
+<%- include('partials/header.ejs'); %>
+<body>
+    <%- include('partials/navbar.ejs'); %>
+    <div class="container">
+        <h1>nome: <%= nome %></h1>
+        <h1>inscritos: <%= inscritos %></h1>
+    
+        <% produtos.forEach(function(produto) { %>
+            <%= produto.nome %>
+            <%= produto.preco %>
+        <% }) %>
+    </div>
+</body>
+<%- include('partials/footer.ejs'); %>
