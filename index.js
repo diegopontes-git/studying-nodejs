@@ -3,6 +3,8 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const connection = require("./database/database");
+const Pergunta = require("./database/Pergunta");
+const Resposta = require("./database/Resposta");
 
 connection
     .authenticate()
@@ -12,7 +14,8 @@ connection
     .catch((msgErro) => {
         console.log('ERRO ao Conectar no Bando de Dados: ');
         console.log(msgErro);
-    })
+    });
+
 
 //Informando ao Express utilizar o EJS comm View Engine
 app.set('view engine', 'ejs');
@@ -22,33 +25,82 @@ app.use(bodyParser.json());
 
 app.get("/", function(req, res) {
 
-    var produtos = [
-        {nome: 'doritos', preco: 3.23},
-        {nome: 'coca', preco: 5.21},
-        {nome: 'leite', preco: 4.10}
-    ]
-
-    res.render("index", {
-        nome: 'Diego Pontes',
-        lang: 'javascript',
-        empresa: 'DSP Dev',
-        inscritos: 9000,
-        produtos: produtos
+    Pergunta.findAll({
+        raw: true,
+        order: [
+            ['ID', 'DESC']
+        ]
+    }).then(perguntas => {
+        res.render("index", {
+            perguntas: perguntas
+        });
     });
+
 });
 
 app.get("/perguntar", (req, res) => {
-      res.render("perguntar", {
+    res.render("perguntar", {
         nome: 'Diego Pontes',
         lang: 'javascript'
+    });
+});
+
+app.get("/pergunta/:id", (req, res) => {
+    var id = req.params.id;
+    Pergunta.findOne({
+        where: {
+            id: id
+        }
+    }).then(pergunta => {
+        if (pergunta != undefined) {
+            Resposta.findAll({
+                raw: true,               
+                where: {
+                    perguntaId: id
+                },
+                order: [
+                    ['ID', 'DESC']
+                ] 
+            }).then(respostas => {
+                res.render("pergunta", {
+                    pergunta: pergunta,
+                    respostas : respostas
+                });
+            });
+        } else {
+            res.redirect("/");
+        }
     });
 });
 
 app.post("/salvarpergunta", (req, res) => {
     var titulo = req.body.titulo;
     var descricao = req.body.descricao;
+    Pergunta.create({
+        titulo: titulo,
+        descricao: descricao
+    }).then(() => {
+        res.redirect('/');
+    }).catch((msgErro) => {
+        console.log('ERROR');
+        console.log(msgErro);
+        res.send("ERRO titulo = " + titulo + " descricao = " + descricao);
+    });
+});
 
-    res.send("Pergunta salva titulo = " + titulo + " descricao = " + descricao);
+app.post("/salvarresposta", (req, res) => {
+    var perguntaId = req.body.perguntaId;
+    var corpo = req.body.corpo;
+    Resposta.create({
+        perguntaId: perguntaId,
+        corpo: corpo
+    }).then(() => {
+        res.redirect('/pergunta/' + perguntaId);
+    }).catch((msgErro) => {
+        console.log('ERROR');
+        console.log(msgErro);
+        res.send("ERRO titulo = " + perguntaId + " corpo = " + corpo);
+    });
 });
 
 app.get("/blog", function(req, res){
